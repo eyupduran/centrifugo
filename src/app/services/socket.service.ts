@@ -2,7 +2,7 @@ import { TokenModel } from './../models/tokenModel';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { constants } from '../models/constants';
-import { Centrifuge, Subscription } from 'centrifuge';
+import { Centrifuge, ConnectionTokenContext, Subscription } from 'centrifuge';
 import { Observable } from 'rxjs';
 
 @Injectable({
@@ -27,9 +27,12 @@ export class SocketService {
 
 
   initCentrifugo() {
-    this.getTokens(constants.channelName,"999")
+    // let token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5OSJ9.FB6k1LtXAGCu2nNJ0s9OJZ2zijmXDgSPrsJxBFqEJac"
+    let connectionToken = this.getTokens().connection_token
+    let subscriptionToken= this.getTokens().subscription_token
+
     this.centrifuge = new Centrifuge("wss://ct.easymakecash.com/connection/websocket", {
-      token:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5OSJ9.FB6k1LtXAGCu2nNJ0s9OJZ2zijmXDgSPrsJxBFqEJac"
+      token: connectionToken,
     });
     this.centrifuge.on('connecting', function (ctx) {
       console.log(`connecting: ${ctx.code}, ${ctx.reason}`);
@@ -43,7 +46,7 @@ export class SocketService {
 
   subscribeChannel(channel: string) {
     this.sub = this.centrifuge.newSubscription(channel,
-      { token:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaGFubmVsIjoicHVibGljOmRlbmVtZSIsImV4cCI6ODg4ODg4ODg4ODg4ODg4ODg4LCJzdWIiOiI5OSJ9.AvEx0nJ7fJ-85vHDKTtK_pV3JMv2j5-cWFj1BqNvwcs',});
+      { token:this.subscriptionToken});
 
     const callbacks = {
       "join": (ctx: any) => this.handleJoin(channel, ctx),
@@ -94,14 +97,17 @@ export class SocketService {
     this.sub.unsubscribe();
   }
 
-  getTokens(channel:string,user:string){
-      let body = {channel,user}
+  getTokens(){
+      let body = {channelName:constants.channelName,userId:"999"}
       const newPath  =  "http://localhost:6060/connect"
        this.http.post<TokenModel>(newPath,body).subscribe(res=>{
         this.tokens = res
+      },err=>{
+        throw new Centrifuge.UnauthorizedError();
       })
       return this.tokens
   }
+
 
   getConnectionToken(): string {
     return this.connectionToken
