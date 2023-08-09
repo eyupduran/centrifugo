@@ -28,11 +28,11 @@ export class SocketService {
 
   initCentrifugo() {
     // let token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5OSJ9.FB6k1LtXAGCu2nNJ0s9OJZ2zijmXDgSPrsJxBFqEJac"
-    let connectionToken = this.getTokens().connection_token
-    let subscriptionToken= this.getTokens().subscription_token
+    let tokens:TokenModel
+    tokens= this.getTokens()
 
     this.centrifuge = new Centrifuge("wss://ct.easymakecash.com/connection/websocket", {
-      token: connectionToken,
+      token: tokens.connection_token
     });
     this.centrifuge.on('connecting', function (ctx) {
       console.log(`connecting: ${ctx.code}, ${ctx.reason}`);
@@ -45,8 +45,10 @@ export class SocketService {
   }
 
   subscribeChannel(channel: string) {
+    let tokens:TokenModel
+    tokens= this.getTokens()
     this.sub = this.centrifuge.newSubscription(channel,
-      { token:this.subscriptionToken});
+      { token:tokens.subscription_token});
 
     const callbacks = {
       "join": (ctx: any) => this.handleJoin(channel, ctx),
