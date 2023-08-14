@@ -1,121 +1,121 @@
+import { environment } from 'src/environments/environment';
 import { TokenModel } from './../models/tokenModel';
-import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { constants } from '../models/constants';
-import { Centrifuge, ConnectionTokenContext, Subscription } from 'centrifuge';
+import {
+  Centrifuge,
+  Subscription,
+} from 'centrifuge';
 import { Observable } from 'rxjs';
+import { constants } from '../models/constants';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
-
 export class SocketService {
 
-  constructor(private http:HttpClient) { }
+  tokens: TokenModel;
+  apiUrl:string= `${environment.apiUrl}`;
   
-  tokens:TokenModel
-
-  apiUrl : "http://localhost:6060/"
-  messages: Array<string> = []
-
-  connectionToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5OSJ9.FB6k1LtXAGCu2nNJ0s9OJZ2zijmXDgSPrsJxBFqEJac'
-  subscriptionToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaGFubmVsIjoicHVibGljOmRlbmVtZSIsImV4cCI6ODg4ODg4ODg4ODg4ODg4ODg4LCJzdWIiOiI5OSJ9.AvEx0nJ7fJ-85vHDKTtK_pV3JMv2j5-cWFj1BqNvwcs'
-  channelName: 'public:deneme'
-
+  messages: Array<string> = [];
+  
+  channelName: 'public:deneme';
+  
   public centrifuge: Centrifuge;
-  public sub: Subscription
-
-
+  public sub: Subscription;
+  
+  constructor(private http: HttpClient) { }
+  
   initCentrifugo() {
-    // let token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5OSJ9.FB6k1LtXAGCu2nNJ0s9OJZ2zijmXDgSPrsJxBFqEJac"
-    let tokens:TokenModel
-    tokens= this.getTokens()
 
-    this.centrifuge = new Centrifuge("wss://ct.easymakecash.com/connection/websocket", {
-      token: tokens.connection_token
-    });
-    this.centrifuge.on('connecting', function (ctx) {
-      console.log(`connecting: ${ctx.code}, ${ctx.reason}`);
-
-    }).on('connected', function (ctx) {
-      console.log(`connected over ${ctx.transport}`);
-    }).on('disconnected', function (ctx) {
-      console.log(`disconnected: ${ctx.code}, ${ctx.reason}`);
-    })
+    this.centrifuge =  new Centrifuge(
+      constants.centrifugoURL,
+      {
+           token:this.tokens.connection_token
+      }
+    );
+    this.centrifuge
+      .on('connecting', function (ctx) {
+        console.log(`connecting: ${ctx.code}, ${ctx.reason}`);
+      })
+      .on('connected', function (ctx) {
+        console.log(`connected over ${ctx.transport}`);
+      })
+      .on('disconnected', function (ctx) {
+        console.log(`disconnected: ${ctx.code}, ${ctx.reason}`);
+      });
   }
 
-  subscribeChannel(channel: string) {
-    let tokens:TokenModel
-    tokens= this.getTokens()
-    this.sub = this.centrifuge.newSubscription(channel,
-      { token:tokens.subscription_token});
+  subscribeChannel(channel: string, ) {
+    this.sub = this.centrifuge.newSubscription(channel, {
+       token:this.tokens.subscription_token
+    });
 
     const callbacks = {
-      "join": (ctx: any) => this.handleJoin(channel, ctx),
-      "publication": (ctx: any) => this.handlePublication(channel, ctx),
-      "subscribing": (ctx: any) => this.handleSubscribing(channel, ctx),
-      "subscribed": (ctx: any) => this.handleSubscribed(ctx),
-      "unsubscribed": (ctx: any) => this.handleUnsubscribe(ctx),
-    }
-    
-    this.sub.on('join', callbacks.join)
-    this.sub.on('publication', callbacks.publication)
-    this.sub.on('subscribing', callbacks.subscribing)
-    this.sub.on('subscribed', callbacks.subscribed)
-    this.sub.on('unsubscribed', callbacks.unsubscribed)
+      join: (ctx: any) => this.handleJoin(channel, ctx),
+      publication: (ctx: any) => this.handlePublication(channel, ctx),
+      subscribing: (ctx: any) => this.handleSubscribing(channel, ctx),
+      subscribed: (ctx: any) => this.handleSubscribed(ctx),
+      unsubscribed: (ctx: any) => this.handleUnsubscribe(ctx),
+    };
+
+    this.sub.on('join', callbacks.join);
+    this.sub.on('publication', callbacks.publication);
+    this.sub.on('subscribing', callbacks.subscribing);
+    this.sub.on('subscribed', callbacks.subscribed);
+    this.sub.on('unsubscribed', callbacks.unsubscribed);
     this.sub.subscribe();
   }
-
+  
   handleJoin(channel: string, ctx: any) {
-    console.log("Someone joined ", channel ,"User:", ctx.info)
+    console.log('Someone joined ', channel, 'User:', ctx.info);
   }
 
   handlePublication(channel: string, ctx: any) {
-    console.log("Someone send message to ", channel  ," User:", ctx.info)
-    this.messages.push(ctx.data.input)
+    console.log('Someone send message to ', channel, ' User:', ctx.info);
+    this.messages.push(ctx.data.input);
   }
 
   handleSubscribing(channel: string, ctx: any) {
-    console.log("Someone subsribing to ", channel  ," User:", ctx.info)
+    console.log('Someone subsribing to ', channel, ' User:', ctx.info);
   }
 
   handleSubscribed(ctx: any) {
-    console.log(ctx," subscribed to ", ctx.channel)
+    console.log(ctx, ' subscribed to ', ctx.channel);
   }
 
   handleUnsubscribe(ctx: any) {
-    console.log(ctx)
+    console.log(ctx, ' unsubscribed from ', ctx.channel);
   }
 
   connect() {
     this.centrifuge.connect();
   }
-
   disconnect() {
     this.centrifuge.disconnect();
   }
-
   unsubscribe() {
     this.sub.unsubscribe();
   }
 
-  getTokens(){
-      let body = {channelName:constants.channelName,userId:"999"}
-      const newPath  =  "http://localhost:6060/connect"
-       this.http.post<TokenModel>(newPath,body).subscribe(res=>{
-        this.tokens = res
-      },err=>{
-        throw new Centrifuge.UnauthorizedError();
-      })
-      return this.tokens
+  getTokens(): Promise<TokenModel> {
+    return new Promise((resolve, reject) => {
+      this.tokenRequest().subscribe(
+        (res) => {
+          resolve(res);
+        },
+        (err) => {
+          console.error(`connection tokeni alınırken hata: ${err}`);
+          reject(err);
+        }
+      );
+    });
   }
 
-
-  getConnectionToken(): string {
-    return this.connectionToken
+  tokenRequest(): Observable<TokenModel> {
+    const body = { channel: constants.channelName, user: '78787788787' };
+    const url = this.apiUrl+"tokens";
+    return this.http.post<TokenModel>(url, body,{});
   }
 
-  getSubscriptionToken(): string {
-    return this.subscriptionToken
-  }
 }

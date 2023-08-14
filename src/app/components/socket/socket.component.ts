@@ -11,11 +11,15 @@ export class SocketComponent implements OnDestroy {
 
   constructor(public socketService: SocketService) {}
 
-  ngOnInit() {
-    this.socketService.initCentrifugo()
-    this.socketService.connect()
-    this.socketService.subscribeChannel(constants.channelName)
-  }
+ ngOnInit() {
+  this.socketService.getTokens().then((res) => {
+    this.socketService.tokens = res;
+  }).then(() => {
+      this.socketService.initCentrifugo()
+      this.socketService.connect()
+      this.socketService.subscribeChannel(constants.channelName)
+  })
+}
 
   ngOnDestroy() {
     this.socketService.unsubscribe()
