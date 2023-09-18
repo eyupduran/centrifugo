@@ -9,6 +9,8 @@ import { Component, OnDestroy } from '@angular/core';
 })
 export class SocketComponent implements OnDestroy {
 
+  textToSend:string =""
+
   constructor(public centrifugoService: CentrifugoService) { }
 
   ngOnInit() {
@@ -26,4 +28,12 @@ export class SocketComponent implements OnDestroy {
     this.centrifugoService.centrifuge.removeSubscription(this.centrifugoService.sub)
   }
 
+
+  sendData(){
+    this.centrifugoService.centrifuge.publish(constants.channelName,this.textToSend).then(res=>{
+      console.log(`Message sended to channel successfully`)
+    }).catch(err=>{
+      console.log(`couldnt send data to channel`)
+    });
+}
 }

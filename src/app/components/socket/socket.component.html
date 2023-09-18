@@ -1,3 +1,7 @@
 <p *ngFor="let message of centrifugoService.messages">
     {{message}}
 </p>
+
+<hr>
+<input [(ngModel)]="textToSend" type="text">
+<button (click)="sendData()"></button>
