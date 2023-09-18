@@ -1,5 +1,5 @@
 import { constants } from 'src/app/models/constants';
-import { SocketService } from './../../services/socket.service';
+import { CentrifugoService } from '../../services/centrifugo.service';
 import { Component, OnDestroy } from '@angular/core';
 
 @Component({
@@ -9,20 +9,21 @@ import { Component, OnDestroy } from '@angular/core';
 })
 export class SocketComponent implements OnDestroy {
 
-  constructor(public socketService: SocketService) {}
+  constructor(public centrifugoService: CentrifugoService) { }
 
- ngOnInit() {
-  this.socketService.getTokens().then((res) => {
-    this.socketService.tokens = res;
-  }).then(() => {
-      this.socketService.initCentrifugo()
-      this.socketService.connect()
-      this.socketService.subscribeChannel(constants.channelName)
-  })
-}
+  ngOnInit() {
+    this.centrifugoService.getTokens().then((res) => {
+      this.centrifugoService.tokens = res;
+    }).then(() => {
+      this.centrifugoService.initCentrifugo()
+      this.centrifugoService.connect()
+      this.centrifugoService.subscribeChannel(constants.channelName)
+    })
+  }
 
   ngOnDestroy() {
-    this.socketService.unsubscribe()
+    this.centrifugoService.unsubscribe()
+    this.centrifugoService.centrifuge.removeSubscription(this.centrifugoService.sub)
   }
 
 }

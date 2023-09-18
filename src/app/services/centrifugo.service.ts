@@ -1,5 +1,5 @@
 import { environment } from 'src/environments/environment';
-import { TokenModel } from './../models/tokenModel';
+import { TokenModel } from '../models/tokenModel';
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import {
@@ -12,26 +12,24 @@ import { constants } from '../models/constants';
 @Injectable({
   providedIn: 'root',
 })
-export class SocketService {
+export class CentrifugoService {
 
   tokens: TokenModel;
-  apiUrl:string= `${environment.apiUrl}`;
-  
+  apiUrl: string = `${environment.apiUrl}`;
+
   messages: Array<string> = [];
-  
-  channelName: 'public:deneme';
-  
+
   public centrifuge: Centrifuge;
   public sub: Subscription;
-  
+
   constructor(private http: HttpClient) { }
-  
+
   initCentrifugo() {
 
-    this.centrifuge =  new Centrifuge(
+    this.centrifuge = new Centrifuge(
       constants.centrifugoURL,
       {
-           token:this.tokens.connection_token
+        token: this.tokens.connection_token
       }
     );
     this.centrifuge
@@ -46,9 +44,9 @@ export class SocketService {
       });
   }
 
-  subscribeChannel(channel: string, ) {
+  subscribeChannel(channel: string,) {
     this.sub = this.centrifuge.newSubscription(channel, {
-       token:this.tokens.subscription_token
+      token: this.tokens.subscription_token
     });
 
     const callbacks = {
@@ -66,7 +64,7 @@ export class SocketService {
     this.sub.on('unsubscribed', callbacks.unsubscribed);
     this.sub.subscribe();
   }
-  
+
   handleJoin(channel: string, ctx: any) {
     console.log('Someone joined ', channel, 'User:', ctx.info);
   }
@@ -111,11 +109,10 @@ export class SocketService {
       );
     });
   }
-
   tokenRequest(): Observable<TokenModel> {
     const body = { channel: constants.channelName, user: '78787788787' };
-    const url = this.apiUrl+"tokens";
-    return this.http.post<TokenModel>(url, body,{});
+    const url = this.apiUrl + "tokens";
+    return this.http.post<TokenModel>(url, body, {});
   }
 
 }
